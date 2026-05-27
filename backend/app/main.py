@@ -3,38 +3,36 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from contextlib import asynccontextmanager
 from backend.app.db.session import create_db_and_tables
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-  await create_db_and_tables()
-  yield
+    await create_db_and_tables()
+    yield
+
 
 app = FastAPI(
-    title = "Auto-Doc Agent API",
-    description = "AI-powered automatic documentation system",
-    version = "1.0.0",
-    docs_url = "/api/docs",
-    redoc_url="/api/redoc",
+    title="Auto-Doc Agent API",
+    version="1.0.0",
+    docs_url="/api/docs",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "vscode-webview://*",
-        "http://localhost:3000",
-        "http://localhost:8000",
-    ],
-    allow_credentials = True,
-    allow_methods = ["*"],
-    allow_headers = ["*"],
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 Instrumentator().instrument(app).expose(app)
 
-@app.get("/health")
+
+@app.get("/health", tags=["health"])
 async def health_check():
-    return {
-        "status":"ok",
-        "app":"Auto-Doc Agent",
-        "version":"1.0.0"
-    }
+    return {"status": "ok", "app": "Auto-Doc Agent", "version": "1.0.0"}

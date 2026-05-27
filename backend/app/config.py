@@ -10,13 +10,14 @@ class Settings(BaseSettings):
   anthropic_api_key:str
   #Database
   database_url:str
+  database_url_direct:str
   #Redis
   redis_url:str
   celery_broker_url:str
   #JWT
   jwt_secret: str
   jwt_algorithm:str = "HS256"
-  jwt_expiry_minutes int = 60
+  jwt_expiry_minutes:int = 60
 
   #cache
   cache_ttl_seconds: int = 86400
