@@ -1,6 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
+from contextlib import asynccontextmanager
+from backend.app.db.session import create_db_and_tables
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+  await create_db_and_tables()
+  yield
 
 app = FastAPI(
     title = "Auto-Doc Agent API",
