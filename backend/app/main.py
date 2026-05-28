@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from contextlib import asynccontextmanager
 from backend.app.db.session import create_db_and_tables
-import logging
+from backend.app.auth.router import router as auth_router
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logging_import = __import__('logging')
+logger = logging_import.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -31,6 +31,8 @@ app.add_middleware(
 )
 
 Instrumentator().instrument(app).expose(app)
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 
 @app.get("/health", tags=["health"])
