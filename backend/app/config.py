@@ -7,7 +7,7 @@ class Settings(BaseSettings):
   app_name: str = "Auto-Doc Agent"
   debug: bool = False
   #Anthropic
-  anthropic_api_key:str
+  gemini_api_key:str
   #Database
   database_url:str
   database_url_direct:str
