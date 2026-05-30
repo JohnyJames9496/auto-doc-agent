@@ -2,14 +2,10 @@
 __pycache__/
 *.py[cod]
 *.pyo
-.Python
-*.egg-info/
-
-# Virtual environment
 .venv/
 venv/
 
-# Environment variables — NEVER push this to GitHub
+# Environment variables
 .env
 .env.*
 !.env.example
@@ -23,15 +19,25 @@ venv/
 coverage.xml
 htmlcov/
 
-# VS Code
-.vscode/
-
 # OS files
 .DS_Store
 Thumbs.db
 
-# Docker
+# Logs
 *.log
 
 # Database
 *.sqlite3
+
+# Node modules
+node_modules/
+extension/node_modules/
+docs-site/node_modules/
+
+# Build outputs
+extension/out/
+docs-site/build/
+docs-site/.docusaurus/
+
+# VSCode extension package
+*.vsix
