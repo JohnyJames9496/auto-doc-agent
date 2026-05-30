@@ -1,0 +1,58 @@
+{
+  "name": "auto-doc-agent",
+  "displayName": "Auto-Doc Agent",
+  "description": "AI-powered automatic documentation generator",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Auto-Doc Agent",
+      "properties": {
+        "autoDocAgent.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Backend API URL"
+        },
+        "autoDocAgent.jwtToken": {
+          "type": "string",
+          "default": "",
+          "description": "JWT authentication token"
+        },
+        "autoDocAgent.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic documentation generation"
+        },
+        "autoDocAgent.debounceMs": {
+          "type": "number",
+          "default": 3000,
+          "description": "Milliseconds to wait after typing stops"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "autoDocAgent.generateNow",
+        "title": "Auto-Doc: Generate Documentation Now"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.0"
+  }
+}

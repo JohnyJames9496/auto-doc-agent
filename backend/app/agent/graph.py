@@ -23,7 +23,7 @@ class DocState(TypedDict):
 
 def call_llm(state: DocState) -> DocState:
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model="gemini-2.5-flash-lite",
         google_api_key=settings.gemini_api_key,
         temperature=0,
     )
