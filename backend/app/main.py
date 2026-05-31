@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter, Histogram, Gauge
 from contextlib import asynccontextmanager
 from backend.app.db.session import create_db_and_tables
 from backend.app.auth.router import router as auth_router
 from backend.app.api.docs import router as docs_router
+import os
 
 cache_hits = Counter(
     "autodoc_cache_hits_total",
@@ -56,10 +59,15 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(docs_router, prefix="/api/v1", tags=["docs"])
 
 
+@app.get("/", include_in_schema=False)
+async def serve_login_page():
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
+    return FileResponse(template_path)
+
+
 @app.get("/health", tags=["health"])
 async def health_check():
     from backend.app.cache.redis_client import cache_set, cache_get
-
     redis_status = "ok"
     try:
         await cache_set("health_check", "ok", ttl=10)

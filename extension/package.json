@@ -1,12 +1,18 @@
 {
   "name": "auto-doc-agent",
   "displayName": "Auto-Doc Agent",
-  "description": "AI-powered automatic documentation generator",
+  "description": "AI-powered automatic documentation generator — generates hover tooltips as you write code",
   "version": "0.1.0",
+  "publisher": "JohnyJames",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JohnyJames9496/auto-doc-agent"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": ["Other"],
+  "keywords": ["documentation", "AI", "autocomplete", "hover", "python"],
   "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
@@ -15,13 +21,13 @@
       "properties": {
         "autoDocAgent.apiUrl": {
           "type": "string",
-          "default": "http://localhost:8000",
+          "default": "https://auto-doc-agent.onrender.com",
           "description": "Backend API URL"
         },
         "autoDocAgent.jwtToken": {
           "type": "string",
           "default": "",
-          "description": "JWT authentication token"
+          "description": "JWT authentication token from auto-doc-agent.onrender.com/api/docs"
         },
         "autoDocAgent.enabled": {
           "type": "boolean",
