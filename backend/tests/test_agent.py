@@ -31,6 +31,7 @@ def test_generate_documentation_graceful_failure():
 
 def test_parse_response_strips_markdown_fences():
     from backend.app.agent.graph import parse_response
+
     state = {
         "raw_response": '```json\n{"summary": "test", "description": "desc", "parameters": [], "returns": {}, "raises": [], "warnings": [], "complexity": "O(1)"}\n```',
         "error": None,

@@ -32,10 +32,12 @@ def call_llm(state: DocState) -> DocState:
         code=state["code"],
     )
     try:
-        response = llm.invoke([
-            SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=prompt),
-        ])
+        response = llm.invoke(
+            [
+                SystemMessage(content=SYSTEM_PROMPT),
+                HumanMessage(content=prompt),
+            ]
+        )
         return {**state, "raw_response": response.content, "error": None}
     except Exception as e:
         logger.error(f"LLM API call failed: {e}")
@@ -108,10 +110,14 @@ def build_doc_graph():
     graph.add_node("format_markdown", format_markdown)
     graph.set_entry_point("call_llm")
     graph.add_edge("call_llm", "parse_response")
-    graph.add_conditional_edges("parse_response", should_retry, {
-        "retry": "call_llm",
-        "end": "format_markdown",
-    })
+    graph.add_conditional_edges(
+        "parse_response",
+        should_retry,
+        {
+            "retry": "call_llm",
+            "end": "format_markdown",
+        },
+    )
     graph.add_edge("format_markdown", END)
     return graph.compile()
 

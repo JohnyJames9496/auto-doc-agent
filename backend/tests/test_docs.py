@@ -7,13 +7,16 @@ from backend.app.db.session import get_db
 
 @pytest.mark.asyncio
 async def test_docs_endpoint_requires_auth(client: AsyncClient):
-    response = await client.post("/api/v1/documentation", json={
-        "file_path": "/test/utils.py",
-        "function_name": "add",
-        "code_snippet": "def add(a, b): return a + b",
-        "language": "python",
-        "project_id": "test-project",
-    })
+    response = await client.post(
+        "/api/v1/documentation",
+        json={
+            "file_path": "/test/utils.py",
+            "function_name": "add",
+            "code_snippet": "def add(a, b): return a + b",
+            "language": "python",
+            "project_id": "test-project",
+        },
+    )
     assert response.status_code == 401
 
 
@@ -39,6 +42,7 @@ async def test_docs_endpoint_with_auth(auth_headers: dict):
                 mock_task.delay.return_value.id = "fake-task-id"
 
                 from httpx import AsyncClient, ASGITransport
+
                 async with AsyncClient(
                     transport=ASGITransport(app=app),
                     base_url="http://test",
