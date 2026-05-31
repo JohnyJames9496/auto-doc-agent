@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import select
 from pydantic import BaseModel, EmailStr, field_validator
 from backend.app.db.session import get_db
 from backend.app.db.models import User
 from backend.app.auth.security import hash_password, verify_password, create_access_token
 
 router = APIRouter()
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -20,9 +21,11 @@ class RegisterRequest(BaseModel):
             raise ValueError("Password must be under 72 characters")
         return v
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
 
 class TokenResponse(BaseModel):
     access_token: str

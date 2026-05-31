@@ -37,6 +37,7 @@ app.include_router(docs_router, prefix="/api/v1", tags=["docs"])
 @app.get("/health", tags=["health"])
 async def health_check():
     from backend.app.cache.redis_client import cache_set, cache_get
+
     redis_status = "ok"
     try:
         await cache_set("health_check", "ok", ttl=10)

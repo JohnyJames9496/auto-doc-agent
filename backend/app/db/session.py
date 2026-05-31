@@ -1,30 +1,28 @@
-from sqlmodel import SQLModel, create_engine, Session
+from sqlmodel import SQLModel, create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from backend.app.config import settings
 
-async_database_url = settings.database_url.replace(
-    "postgresql://", "postgresql+asyncpg://"
-)
+async_database_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
 
 async_engine = create_async_engine(
     async_database_url,
-    echo=settings.debug,  
+    echo=settings.debug,
     future=True,
-    pool_size = 5,
-    max_overflow = 10,
-    pool_timeout = 30,
-    pool_recycle = 1800,
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800,
     connect_args={
-        "statement_cache_size":0,
-        "prepared_statement_cache_size":0,
-    }
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    },
 )
 
 sync_engine = create_engine(
     settings.database_url,
     echo=settings.debug,
-    pool_pre_ping=True, 
+    pool_pre_ping=True,
 )
 
 
@@ -40,9 +38,8 @@ SyncSessionLocal = sessionmaker(
 )
 
 
-
 async def get_db():
-    
+
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -52,7 +49,6 @@ async def get_db():
             raise
         finally:
             await session.close()
-
 
 
 async def create_db_and_tables():

@@ -5,7 +5,6 @@ from uuid import UUID, uuid4
 
 
 class User(SQLModel, table=True):
-   
     __tablename__ = "users"
 
     id: UUID = Field(
@@ -21,13 +20,10 @@ class User(SQLModel, table=True):
     hashed_password: str = Field(max_length=255)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    
     projects: List["Project"] = Relationship(back_populates="owner")
 
 
-
 class Project(SQLModel, table=True):
-
     __tablename__ = "projects"
 
     id: UUID = Field(
@@ -39,19 +35,13 @@ class Project(SQLModel, table=True):
     repo_url: Optional[str] = Field(default=None, max_length=500)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    
     owner_id: UUID = Field(foreign_key="users.id")
 
-    
     owner: Optional[User] = Relationship(back_populates="projects")
-    documentation: List["Documentation"] = Relationship(
-        back_populates="project"
-    )
-
+    documentation: List["Documentation"] = Relationship(back_populates="project")
 
 
 class Documentation(SQLModel, table=True):
-   
     __tablename__ = "documentation"
 
     id: UUID = Field(
@@ -62,15 +52,11 @@ class Documentation(SQLModel, table=True):
     file_path: str = Field(max_length=1000)
     function_name: str = Field(max_length=255, index=True)
     code_hash: str = Field(max_length=64, index=True)
-    doc_content: str  
+    doc_content: str
     language: str = Field(max_length=50)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default=None)
 
-    
     project_id: UUID = Field(foreign_key="projects.id")
 
-    
-    project: Optional[Project] = Relationship(
-        back_populates="documentation"
-    )
+    project: Optional[Project] = Relationship(back_populates="documentation")

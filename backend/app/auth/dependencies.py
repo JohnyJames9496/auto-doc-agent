@@ -5,6 +5,7 @@ from backend.app.auth.security import decode_token
 
 security = HTTPBearer()
 
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
