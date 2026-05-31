@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.git/
+extension/
+docs-site/
+monitoring/
+*.md
+.gitignore
