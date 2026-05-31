@@ -59,6 +59,18 @@ jobs:
           DEBUG: "True"
         run: uv run pytest backend/tests/ -v --cov=backend --cov-report=xml
 
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to Render
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+            -d '{"clearCache": false}'
+
   deploy-docs:
     runs-on: ubuntu-latest
     needs: test

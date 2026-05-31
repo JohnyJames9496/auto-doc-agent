@@ -38,13 +38,15 @@ async def request_documentation(
     current_user: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
-    start = time.monotonic()
+    from backend.app.main import cache_hits, cache_misses
 
+    start = time.monotonic()
     code_hash = hashlib.sha256(req.code_snippet.encode()).hexdigest()
     cache_key = f"doc:{code_hash}"
 
     cached_doc = await cache_get(cache_key)
     if cached_doc:
+        cache_hits.inc()
         return DocumentationResponse(
             function_name=req.function_name,
             documentation=cached_doc,
@@ -53,10 +55,15 @@ async def request_documentation(
             status="complete",
         )
 
-    result = await db.execute(select(Documentation).where(Documentation.code_hash == code_hash))
+    cache_misses.inc()
+
+    result = await db.execute(
+        select(Documentation).where(Documentation.code_hash == code_hash)
+    )
     existing = result.scalar_one_or_none()
     if existing:
         await cache_set(cache_key, existing.doc_content)
+        cache_hits.inc()
         return DocumentationResponse(
             function_name=req.function_name,
             documentation=existing.doc_content,
@@ -108,17 +115,17 @@ async def get_project_documentation(
     current_user: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
-    result = await db.execute(select(Documentation).where(Documentation.project_id == project_id))
+    result = await db.execute(
+        select(Documentation).where(Documentation.project_id == project_id)
+    )
     docs = result.scalars().all()
-    return {
-        "documentation": [
-            {
-                "function_name": d.function_name,
-                "file_path": d.file_path,
-                "doc_content": d.doc_content,
-                "language": d.language,
-                "updated_at": str(d.updated_at),
-            }
-            for d in docs
-        ]
-    }
+    return {"documentation": [
+        {
+            "function_name": d.function_name,
+            "file_path": d.file_path,
+            "doc_content": d.doc_content,
+            "language": d.language,
+            "updated_at": str(d.updated_at),
+        }
+        for d in docs
+    ]}

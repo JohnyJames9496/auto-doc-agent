@@ -32,12 +32,10 @@ def call_llm(state: DocState) -> DocState:
         code=state["code"],
     )
     try:
-        response = llm.invoke(
-            [
-                SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=prompt),
-            ]
-        )
+        response = llm.invoke([
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=prompt),
+        ])
         return {**state, "raw_response": response.content, "error": None}
     except Exception as e:
         logger.error(f"LLM API call failed: {e}")
@@ -94,7 +92,7 @@ def format_markdown(state: DocState) -> DocState:
 
 def should_retry(state: DocState) -> str:
     error = str(state.get("error", "")).lower()
-    non_retryable = ["authentication", "401", "credit", "billing", "400", "invalid"]
+    non_retryable = ["authentication", "401", "credit", "billing", "400", "invalid", "api error"]
     if state.get("error"):
         if any(keyword in error for keyword in non_retryable):
             return "end"
@@ -110,14 +108,10 @@ def build_doc_graph():
     graph.add_node("format_markdown", format_markdown)
     graph.set_entry_point("call_llm")
     graph.add_edge("call_llm", "parse_response")
-    graph.add_conditional_edges(
-        "parse_response",
-        should_retry,
-        {
-            "retry": "call_llm",
-            "end": "format_markdown",
-        },
-    )
+    graph.add_conditional_edges("parse_response", should_retry, {
+        "retry": "call_llm",
+        "end": "format_markdown",
+    })
     graph.add_edge("format_markdown", END)
     return graph.compile()
 
