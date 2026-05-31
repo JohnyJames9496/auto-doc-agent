@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter, Histogram, Gauge
@@ -68,6 +67,7 @@ async def serve_login_page():
 @app.get("/health", tags=["health"])
 async def health_check():
     from backend.app.cache.redis_client import cache_set, cache_get
+
     redis_status = "ok"
     try:
         await cache_set("health_check", "ok", ttl=10)
