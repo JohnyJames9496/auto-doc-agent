@@ -135,9 +135,7 @@ async def get_user_projects(
     current_user: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
-    result = await db.execute(
-        select(Project).where(Project.owner_id == UUID(current_user))
-    )
+    result = await db.execute(select(Project).where(Project.owner_id == UUID(current_user)))
     projects = result.scalars().all()
     return {
         "projects": [
