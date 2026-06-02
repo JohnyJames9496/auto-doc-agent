@@ -15,6 +15,7 @@ celery_app.conf.update(
     accept_content=["json"],
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    task_default_queue="docs",
     task_soft_time_limit=120,
     task_time_limit=180,
     broker_transport_options={

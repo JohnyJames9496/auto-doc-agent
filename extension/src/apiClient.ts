@@ -6,11 +6,17 @@ export class AutoDocClient {
 
     constructor() {
         const config = vscode.workspace.getConfiguration('autoDocAgent');
+        const apiUrl = config.get<string>('apiUrl', 'https://auto-doc-agent.onrender.com');
+        const token = config.get<string>('jwtToken', '');
+
+        console.log('Auto-Doc Agent: API URL is', apiUrl);
+        console.log('Auto-Doc Agent: Token exists:', token.length > 0);
+
         this.http = axios.create({
-            baseURL: config.get<string>('apiUrl', 'http://localhost:8000'),
-            timeout: 10000,
+            baseURL: apiUrl,
+            timeout: 15000,
             headers: {
-                'Authorization': `Bearer ${config.get<string>('jwtToken', '')}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
         });
@@ -24,9 +30,13 @@ export class AutoDocClient {
         project_id: string;
     }): Promise<string | null> {
         try {
+            console.log('Auto-Doc Agent: sending request for', payload.function_name);
             const response = await this.http.post('/api/v1/documentation', payload);
+            console.log('Auto-Doc Agent: response status', response.status);
+            console.log('Auto-Doc Agent: response data', response.data);
             return response.data.task_id ?? null;
-        } catch {
+        } catch (err: any) {
+            console.error('Auto-Doc Agent: request failed', err?.message || err);
             return null;
         }
     }
@@ -34,8 +44,10 @@ export class AutoDocClient {
     async pollTaskResult(taskId: string): Promise<{ status: string; documentation?: string } | null> {
         try {
             const response = await this.http.get(`/api/v1/documentation/task/${taskId}`);
+            console.log('Auto-Doc Agent: task result', response.data);
             return response.data;
-        } catch {
+        } catch (err: any) {
+            console.error('Auto-Doc Agent: poll failed', err?.message || err);
             return null;
         }
     }
