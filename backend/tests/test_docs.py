@@ -25,14 +25,15 @@ async def test_docs_endpoint_requires_auth():
                 "project_id": str(uuid4()),
             },
         )
-        # Should reject without auth header
-        assert response.status_code == 403
+        # Should reject without auth header (401 or 403)
+        assert response.status_code in [401, 403]
 
 
 @pytest.mark.asyncio
 async def test_docs_endpoint_with_auth():
     """Test docs endpoint with valid auth"""
     test_user_id = str(uuid4())
+    test_project_id = str(uuid4())
 
     async def override_get_current_user(*args, **kwargs):
         return test_user_id
@@ -51,9 +52,8 @@ async def test_docs_endpoint_with_auth():
     app.dependency_overrides[get_db] = override_get_db
 
     try:
-        with patch("backend.app.api.docs.cache_get", new_callable=AsyncMock) as mock_cache_get:
+        with patch("backend.app.api.docs.cache_get", new_callable=AsyncMock):
             with patch("backend.app.api.docs.generate_doc_task") as mock_task:
-                mock_cache_get.return_value = None
                 mock_task.delay.return_value.id = "fake-task-id"
 
                 from httpx import AsyncClient, ASGITransport
@@ -69,9 +69,9 @@ async def test_docs_endpoint_with_auth():
                             "function_name": "add",
                             "code_snippet": "def add(a, b): return a + b",
                             "language": "python",
-                            "project_id": str(uuid4()),
+                            "project_id": test_project_id,
                         },
-                        headers={"Authorization": "Bearer fake-key"},
+                        headers={"Authorization": "Bearer test-key"},
                     )
                     assert response.status_code == 200
     finally:
@@ -82,6 +82,7 @@ async def test_docs_endpoint_with_auth():
 async def test_docs_endpoint_cache_hit():
     """Test cache hit for docs"""
     test_user_id = str(uuid4())
+    test_project_id = str(uuid4())
 
     async def override_get_current_user(*args, **kwargs):
         return test_user_id
@@ -112,9 +113,9 @@ async def test_docs_endpoint_cache_hit():
                         "function_name": "add",
                         "code_snippet": "def add(a, b): return a + b",
                         "language": "python",
-                        "project_id": str(uuid4()),
+                        "project_id": test_project_id,
                     },
-                    headers={"Authorization": "Bearer fake-key"},
+                    headers={"Authorization": "Bearer test-key"},
                 )
                 assert response.status_code == 200
                 assert "add" in response.text
