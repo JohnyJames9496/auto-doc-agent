@@ -1,4 +1,4 @@
----
+sed -i 's/Paste your JWT token here.../Paste your API key here.../g' ~/auto-doc-agent/backend/app/templates/dashboard.html---
 sidebar_position: 1
 ---
 
@@ -16,7 +16,7 @@ Press `Ctrl+Shift+P` → Open User Settings JSON and add:
 ```json
 {
   "autoDocAgent.apiUrl": "https://auto-doc-agent.onrender.com",
-  "autoDocAgent.jwtToken": "your-token-here"
+  "autoDocAgent.apiKey": "your-token-here"
 }
 ```
 

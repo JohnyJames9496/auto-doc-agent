@@ -52,10 +52,10 @@
     </div>
 
     <div id="login-prompt" class="login-prompt" style="display:none;">
-        <h2>🔒 Enter your API token to view your documentation</h2>
-        <p style="color:#8b949e;margin-bottom:16px;">Get your token from <a href="/">auto-doc-agent.onrender.com</a></p>
+        <h2>🔒 Enter your API key to view your documentation</h2>
+        <p style="color:#8b949e;margin-bottom:16px;">Get your API key from <a href="/">auto-doc-agent.onrender.com</a></p>
         <div class="token-input">
-            <input type="text" id="token-input" placeholder="Paste your JWT token here..." />
+            <input type="text" id="token-input" placeholder="Paste your API key here..." />
             <button onclick="loadWithToken()">Enter</button>
         </div>
         <div id="token-error" class="error-msg"></div>
@@ -105,19 +105,13 @@
                     document.getElementById('login-prompt').style.display = 'block';
                     document.getElementById('app-layout').style.display = 'none';
                     if (res.status === 401) {
-                        document.getElementById('token-error').textContent = 'Invalid token. Please try again.';
+                        document.getElementById('token-error').textContent = 'Invalid API key. Please try again.';
                         localStorage.removeItem('autodoc_token');
                     }
                     return false;
                 }
                 const data = await res.json();
                 projects = data.projects;
-
-                // get user email from token
-                try {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    document.getElementById('user-email').textContent = payload.email || '';
-                } catch {}
 
                 document.getElementById('login-prompt').style.display = 'none';
                 document.getElementById('app-layout').style.display = 'flex';
@@ -164,14 +158,12 @@
                     return;
                 }
 
-                // group by file
                 const byFile = {};
                 for (const doc of docs) {
                     if (!byFile[doc.file_path]) byFile[doc.file_path] = [];
                     byFile[doc.file_path].push(doc);
                 }
 
-                // render sidebar files
                 const filesEl = document.getElementById(`files-${projectId}`);
                 filesEl.innerHTML = Object.keys(byFile).map(f => `
                     <div class="file-item" onclick="showFile('${projectId}', '${f.replace(/'/g, "\\'")}')">
@@ -181,7 +173,6 @@
 
                 allDocs[projectId] = byFile;
 
-                // show first file
                 const firstFile = Object.keys(byFile)[0];
                 showFile(projectId, firstFile);
 

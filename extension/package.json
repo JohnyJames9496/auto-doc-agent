@@ -35,10 +35,10 @@
           "default": "https://auto-doc-agent.onrender.com",
           "description": "Backend API URL"
         },
-        "autoDocAgent.jwtToken": {
+        "autoDocAgent.apiKey": {
           "type": "string",
           "default": "",
-          "description": "JWT authentication token from auto-doc-agent.onrender.com/api/docs"
+          "description": "API key from auto-doc-agent.onrender.com from auto-doc-agent.onrender.com/api/docs"
         },
         "autoDocAgent.enabled": {
           "type": "boolean",

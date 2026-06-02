@@ -7,16 +7,16 @@ export class AutoDocClient {
     constructor() {
         const config = vscode.workspace.getConfiguration('autoDocAgent');
         const apiUrl = config.get<string>('apiUrl', 'https://auto-doc-agent.onrender.com');
-        const token = config.get<string>('jwtToken', '');
+        const apiKey = config.get<string>('apiKey', '');
 
         console.log('Auto-Doc Agent: API URL is', apiUrl);
-        console.log('Auto-Doc Agent: Token exists:', token.length > 0);
+        console.log('Auto-Doc Agent: API Key exists:', apiKey.length > 0);
 
         this.http = axios.create({
             baseURL: apiUrl,
             timeout: 15000,
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
             },
         });
@@ -35,7 +35,6 @@ export class AutoDocClient {
             console.log('Auto-Doc Agent: response status', response.status);
             console.log('Auto-Doc Agent: response data', response.data);
 
-            // If cached or already complete, return documentation directly
             if (response.data.status === 'complete' && response.data.documentation) {
                 return { taskId: null, documentation: response.data.documentation };
             }

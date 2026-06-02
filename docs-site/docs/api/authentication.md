@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Authentication
 
-All API endpoints require a JWT token in the Authorization header.
+All API endpoints require a API key in the Authorization header.
 
 ## Register
 ```http
@@ -31,7 +31,7 @@ Content-Type: application/json
 **Response:**
 ```json
 {
-  "access_token": "eyJ...",
+  "access_token": "autodoc_xxxx...",
   "token_type": "bearer"
 }
 ```
