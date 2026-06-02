@@ -33,7 +33,6 @@ def mock_db():
 
 @pytest.fixture
 async def client(mock_db):
-    """Client without auth override - for auth tests"""
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test",
@@ -43,9 +42,7 @@ async def client(mock_db):
 
 @pytest.fixture
 async def auth_client(mock_db):
-    """Client with auth override - for docs tests"""
-
-    async def mock_auth(*args, **kwargs):
+    async def mock_auth():
         return TEST_USER_ID
 
     app.dependency_overrides[get_current_user] = mock_auth
