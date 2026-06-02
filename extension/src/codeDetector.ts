@@ -47,7 +47,7 @@ export class CodeChangeDetector {
         const projectId = workspaceFolder?.name ?? 'default';
 
         for (const fn of functions) {
-            const taskId = await this.client.requestDocumentation({
+            const result = await this.client.requestDocumentation({
                 file_path: document.uri.fsPath,
                 function_name: fn.name,
                 code_snippet: fn.code,
@@ -55,8 +55,12 @@ export class CodeChangeDetector {
                 project_id: projectId,
             });
 
-            if (taskId) {
-                this.pollForResult(taskId, fn.name, document.uri.fsPath);
+            // If cached/complete, set immediately
+            if (result.documentation) {
+                this.hoverProvider.setDocumentation(document.uri.fsPath, fn.name, result.documentation);
+            } else if (result.taskId) {
+                // Otherwise poll for result
+                this.pollForResult(result.taskId, fn.name, document.uri.fsPath);
             }
         }
 

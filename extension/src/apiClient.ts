@@ -28,16 +28,22 @@ export class AutoDocClient {
         code_snippet: string;
         language: string;
         project_id: string;
-    }): Promise<string | null> {
+    }): Promise<{ taskId: string | null; documentation: string | null }> {
         try {
             console.log('Auto-Doc Agent: sending request for', payload.function_name);
             const response = await this.http.post('/api/v1/documentation', payload);
             console.log('Auto-Doc Agent: response status', response.status);
             console.log('Auto-Doc Agent: response data', response.data);
-            return response.data.task_id ?? null;
+
+            // If cached or already complete, return documentation directly
+            if (response.data.status === 'complete' && response.data.documentation) {
+                return { taskId: null, documentation: response.data.documentation };
+            }
+
+            return { taskId: response.data.task_id ?? null, documentation: null };
         } catch (err: any) {
             console.error('Auto-Doc Agent: request failed', err?.message || err);
-            return null;
+            return { taskId: null, documentation: null };
         }
     }
 

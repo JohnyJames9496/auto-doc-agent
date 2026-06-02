@@ -8,9 +8,10 @@ from backend.app.queue.celery_app import celery_app
 from backend.app.queue.tasks import generate_doc_task
 from backend.app.db.session import get_db
 from sqlmodel import select
-from backend.app.db.models import Documentation
+from backend.app.db.models import Documentation, Project
 import hashlib
 import time
+from uuid import UUID
 
 router = APIRouter()
 
@@ -125,5 +126,26 @@ async def get_project_documentation(
                 "updated_at": str(d.updated_at),
             }
             for d in docs
+        ]
+    }
+
+
+@router.get("/projects")
+async def get_user_projects(
+    current_user: str = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    result = await db.execute(
+        select(Project).where(Project.owner_id == UUID(current_user))
+    )
+    projects = result.scalars().all()
+    return {
+        "projects": [
+            {
+                "id": str(p.id),
+                "name": p.name,
+                "created_at": str(p.created_at),
+            }
+            for p in projects
         ]
     }

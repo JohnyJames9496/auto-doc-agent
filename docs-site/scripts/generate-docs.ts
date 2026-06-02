@@ -9,18 +9,19 @@ const pool = new Pool({
 
 async function generateDocPages() {
     const client = await pool.connect();
-
     try {
         const { rows } = await client.query(`
-            SELECT DISTINCT ON (project_id, file_path, function_name)
-                project_id,
-                file_path,
-                function_name,
-                doc_content,
-                language,
-                updated_at
-            FROM documentation
-            ORDER BY project_id, file_path, function_name, updated_at DESC
+            SELECT DISTINCT ON (d.project_id, d.file_path, d.function_name)
+                d.project_id,
+                p.name as project_name,
+                d.file_path,
+                d.function_name,
+                d.doc_content,
+                d.language,
+                d.updated_at
+            FROM documentation d
+            JOIN projects p ON p.id = d.project_id
+            ORDER BY d.project_id, d.file_path, d.function_name, d.updated_at DESC
         `);
 
         if (rows.length === 0) {
@@ -36,15 +37,16 @@ async function generateDocPages() {
 
         const byFile = new Map<string, typeof rows>();
         for (const row of rows) {
-            const key = `${row.project_id}:${row.file_path}`;
+            const key = `${row.project_name}:${row.file_path}`;
             if (!byFile.has(key)) byFile.set(key, []);
             byFile.get(key)!.push(row);
         }
 
         for (const [key, docs] of byFile) {
-            const [projectId, filePath] = key.split(':');
+            const [projectName, filePath] = key.split(':');
             const fileName = path.basename(filePath, path.extname(filePath));
-            const outputDir = path.join('docs', 'generated', projectId);
+            const safeProjectName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
+            const outputDir = path.join('docs', 'generated', safeProjectName);
             fs.mkdirSync(outputDir, { recursive: true });
 
             const content = [
