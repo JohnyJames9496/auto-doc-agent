@@ -23,6 +23,25 @@ class User(SQLModel, table=True):
     projects: List["Project"] = Relationship(back_populates="owner")
 
 
+class APIKey(SQLModel, table=True):
+    __tablename__ = "api_keys"
+
+    id: UUID = Field(
+        default_factory=uuid4,
+        primary_key=True,
+        index=True,
+    )
+    key: str = Field(
+        unique=True,
+        index=True,
+        max_length=255,
+    )
+    user_id: UUID = Field(foreign_key="users.id")
+    user: Optional[User] = Relationship()
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_used: Optional[datetime] = Field(default=None)
+
+
 class Project(SQLModel, table=True):
     __tablename__ = "projects"
 
