@@ -6,7 +6,7 @@ const config: Config = {
   title: 'Auto-Doc Agent',
   tagline: 'Always up-to-date documentation, generated automatically',
   favicon: 'img/favicon.ico',
-  url: 'https://your-project.vercel.app',
+  url: 'https://auto-doc-agent-ote6wm5y1-johny9496.vercel.app',
   baseUrl: '/',
   organizationName: 'JohnyJames9496',
   projectName: 'auto-doc-agent',
