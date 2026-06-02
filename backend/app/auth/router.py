@@ -8,6 +8,7 @@ import secrets
 
 router = APIRouter()
 
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
@@ -21,13 +22,16 @@ class RegisterRequest(BaseModel):
             raise ValueError("Password must be under 72 characters")
         return v
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
 
 @router.post("/register", response_model=TokenResponse)
 async def register(req: RegisterRequest, db=Depends(get_db)):
@@ -49,6 +53,7 @@ async def register(req: RegisterRequest, db=Depends(get_db)):
     await db.commit()
 
     return TokenResponse(access_token=api_key)
+
 
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, db=Depends(get_db)):
