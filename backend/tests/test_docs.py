@@ -25,7 +25,6 @@ async def test_docs_endpoint_requires_auth():
                 "project_id": str(uuid4()),
             },
         )
-        # Should reject without auth header (401 or 403)
         assert response.status_code in [401, 403]
 
 
@@ -52,8 +51,9 @@ async def test_docs_endpoint_with_auth():
     app.dependency_overrides[get_db] = override_get_db
 
     try:
-        with patch("backend.app.api.docs.cache_get", new_callable=AsyncMock):
+        with patch("backend.app.api.docs.cache_get", new_callable=AsyncMock) as mock_cache:
             with patch("backend.app.api.docs.generate_doc_task") as mock_task:
+                mock_cache.return_value = None
                 mock_task.delay.return_value.id = "fake-task-id"
 
                 from httpx import AsyncClient, ASGITransport
@@ -97,8 +97,8 @@ async def test_docs_endpoint_cache_hit():
 
     try:
         cached_doc = "### `add`\n\nAdds two numbers."
-        with patch("backend.app.api.docs.cache_get", new_callable=AsyncMock) as mock_cache_get:
-            mock_cache_get.return_value = cached_doc
+        with patch("backend.app.api.docs.cache_get", new_callable=AsyncMock) as mock_cache:
+            mock_cache.return_value = cached_doc
 
             from httpx import AsyncClient, ASGITransport
 
