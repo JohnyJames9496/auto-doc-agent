@@ -39,7 +39,6 @@
         .token-input button { padding: 10px 20px; background: #238636; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 14px; }
         .token-input button:hover { background: #2ea043; }
         .error-msg { color: #f85149; text-align: center; font-size: 13px; margin-top: 8px; }
-        .badge { font-size: 11px; background: #21262d; color: #8b949e; padding: 2px 8px; border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -112,7 +111,6 @@
                 }
                 const data = await res.json();
                 projects = data.projects;
-
                 document.getElementById('login-prompt').style.display = 'none';
                 document.getElementById('app-layout').style.display = 'flex';
                 renderProjects();
@@ -154,7 +152,7 @@
                 const docs = data.documentation;
 
                 if (docs.length === 0) {
-                    main.innerHTML = '<div class="empty">No documentation yet for this project.<br>Start writing code in VSCode!</div>';
+                    main.innerHTML = '<div class="empty">No documentation yet.<br>Start writing code in VSCode!</div>';
                     return;
                 }
 
@@ -167,12 +165,11 @@
                 const filesEl = document.getElementById(`files-${projectId}`);
                 filesEl.innerHTML = Object.keys(byFile).map(f => `
                     <div class="file-item" onclick="showFile('${projectId}', '${f.replace(/'/g, "\\'")}')">
-                        📄 ${f.split('/').pop()}
+                        📄 ${f.split(/[/\\]/).pop()}
                     </div>
                 `).join('');
 
                 allDocs[projectId] = byFile;
-
                 const firstFile = Object.keys(byFile)[0];
                 showFile(projectId, firstFile);
 
@@ -187,7 +184,7 @@
             const main = document.getElementById('main-content');
 
             main.innerHTML = `
-                <h2 style="font-size:16px;color:#8b949e;margin-bottom:20px;font-family:monospace;">${filePath}</h2>
+                <h2 style="font-size:16px;color:#8b949e;margin-bottom:20px;font-family:monospace;">${filePath.split(/[/\\]/).pop()}</h2>
                 ${docs.map(d => `
                     <div class="doc-card">
                         <h3>\`${d.function_name}\`</h3>
