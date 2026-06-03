@@ -1,7 +1,7 @@
 from backend.app.queue.celery_app import celery_app
 from backend.app.agent.graph import generate_documentation
 from backend.app.config import settings
-from uuid import UUID
+import uuid as uuid_module
 import redis
 import ssl
 import logging
@@ -54,10 +54,9 @@ def generate_doc_task(
         from backend.app.db.models import Documentation, Project, User
         from datetime import datetime
 
-        project_uuid = UUID(project_id) if not isinstance(project_id, UUID) else project_id
+        project_uuid = uuid_module.uuid5(uuid_module.NAMESPACE_DNS, project_id)
 
         with Session(sync_engine) as db:
-            # Create project if it doesn't exist
             project = db.exec(select(Project).where(Project.id == project_uuid)).first()
             if not project:
                 user = db.exec(select(User)).first()
