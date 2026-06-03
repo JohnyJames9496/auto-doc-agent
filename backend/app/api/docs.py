@@ -41,7 +41,6 @@ async def request_documentation(
 ):
     from backend.app.main import cache_hits, cache_misses
 
-    # Always ensure project exists first
     project_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, req.project_id)
     project_result = await db.execute(select(Project).where(Project.id == project_uuid))
     if not project_result.scalar_one_or_none():
@@ -53,7 +52,6 @@ async def request_documentation(
             )
         )
         await db.flush()
-        await db.commit()
 
     start = time.monotonic()
     code_hash = hashlib.sha256(req.code_snippet.encode()).hexdigest()
