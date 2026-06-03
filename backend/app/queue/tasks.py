@@ -51,12 +51,21 @@ def generate_doc_task(
     try:
         from sqlmodel import Session, select
         from backend.app.db.session import sync_engine
-        from backend.app.db.models import Documentation
+        from backend.app.db.models import Documentation, Project, User
         from datetime import datetime
 
         project_uuid = UUID(project_id) if not isinstance(project_id, UUID) else project_id
 
         with Session(sync_engine) as db:
+            # Create project if it doesn't exist
+            project = db.exec(select(Project).where(Project.id == project_uuid)).first()
+            if not project:
+                user = db.exec(select(User)).first()
+                if user:
+                    project = Project(id=project_uuid, name=project_id, owner_id=user.id)
+                    db.add(project)
+                    db.flush()
+
             existing = db.exec(
                 select(Documentation).where(Documentation.code_hash == code_hash)
             ).first()
