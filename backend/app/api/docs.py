@@ -41,6 +41,20 @@ async def request_documentation(
 ):
     from backend.app.main import cache_hits, cache_misses
 
+    # Always ensure project exists first
+    project_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, req.project_id)
+    project_result = await db.execute(select(Project).where(Project.id == project_uuid))
+    if not project_result.scalar_one_or_none():
+        db.add(
+            Project(
+                id=project_uuid,
+                name=req.project_id,
+                owner_id=uuid.UUID(current_user),
+            )
+        )
+        await db.flush()
+        await db.commit()
+
     start = time.monotonic()
     code_hash = hashlib.sha256(req.code_snippet.encode()).hexdigest()
     cache_key = f"doc:{code_hash}"
@@ -70,18 +84,6 @@ async def request_documentation(
             generation_time_ms=(time.monotonic() - start) * 1000,
             status="complete",
         )
-
-    project_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, req.project_id)
-    project_result = await db.execute(select(Project).where(Project.id == project_uuid))
-    if not project_result.scalar_one_or_none():
-        db.add(
-            Project(
-                id=project_uuid,
-                name=req.project_id,
-                owner_id=uuid.UUID(current_user),
-            )
-        )
-        await db.flush()
 
     task = generate_doc_task.delay(
         code_snippet=req.code_snippet,
