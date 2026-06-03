@@ -12,6 +12,9 @@ from sqlmodel import select
 import hashlib
 import time
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -52,6 +55,9 @@ async def request_documentation(
             )
         )
         await db.flush()
+        logger.info(f"Project created: {project_uuid} owner: {current_user}")
+    else:
+        logger.info(f"Project exists: {project_uuid}")
 
     start = time.monotonic()
     code_hash = hashlib.sha256(req.code_snippet.encode()).hexdigest()
