@@ -72,15 +72,15 @@ async def request_documentation(
         )
 
     project_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, req.project_id)
-    project_result = await db.execute(
-        select(Project).where(Project.id == project_uuid)
-    )
+    project_result = await db.execute(select(Project).where(Project.id == project_uuid))
     if not project_result.scalar_one_or_none():
-        db.add(Project(
-            id=project_uuid,
-            name=req.project_id,
-            owner_id=uuid.UUID(current_user),
-        ))
+        db.add(
+            Project(
+                id=project_uuid,
+                name=req.project_id,
+                owner_id=uuid.UUID(current_user),
+            )
+        )
         await db.flush()
 
     task = generate_doc_task.delay(
