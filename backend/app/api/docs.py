@@ -7,11 +7,11 @@ from backend.app.cache.redis_client import cache_get, cache_set
 from backend.app.queue.celery_app import celery_app
 from backend.app.queue.tasks import generate_doc_task
 from backend.app.db.session import get_db
-from sqlmodel import select
 from backend.app.db.models import Documentation, Project
+from sqlmodel import select
 import hashlib
 import time
-from uuid import UUID
+import uuid
 
 router = APIRouter()
 
@@ -71,6 +71,19 @@ async def request_documentation(
             status="complete",
         )
 
+    project_result = await db.execute(
+        select(Project).where(Project.id == uuid.UUID(req.project_id))
+    )
+    if not project_result.scalar_one_or_none():
+        db.add(
+            Project(
+                id=uuid.UUID(req.project_id),
+                name=req.project_id,
+                owner_id=uuid.UUID(current_user),
+            )
+        )
+        await db.flush()
+
     task = generate_doc_task.delay(
         code_snippet=req.code_snippet,
         function_name=req.function_name,
@@ -80,10 +93,7 @@ async def request_documentation(
         code_hash=code_hash,
     )
 
-    return DocumentationResponse(
-        task_id=task.id,
-        status="queued",
-    )
+    return DocumentationResponse(task_id=task.id, status="queued")
 
 
 @router.get("/documentation/task/{task_id}", response_model=DocumentationResponse)
@@ -102,8 +112,7 @@ async def get_task_result(
                 cached=False,
                 status="complete",
             )
-        else:
-            return DocumentationResponse(status="failed")
+        return DocumentationResponse(status="failed")
 
     return DocumentationResponse(status="pending")
 
@@ -135,15 +144,10 @@ async def get_user_projects(
     current_user: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
-    result = await db.execute(select(Project).where(Project.owner_id == UUID(current_user)))
+    result = await db.execute(select(Project).where(Project.owner_id == uuid.UUID(current_user)))
     projects = result.scalars().all()
     return {
         "projects": [
-            {
-                "id": str(p.id),
-                "name": p.name,
-                "created_at": str(p.created_at),
-            }
-            for p in projects
+            {"id": str(p.id), "name": p.name, "created_at": str(p.created_at)} for p in projects
         ]
     }
