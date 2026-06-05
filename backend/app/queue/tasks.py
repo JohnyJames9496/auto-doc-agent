@@ -1,6 +1,10 @@
 from backend.app.queue.celery_app import celery_app
 from backend.app.agent.graph import generate_documentation
 from backend.app.config import settings
+from backend.app.db.session import sync_engine
+from backend.app.db.models import Documentation
+from sqlmodel import Session, select
+from datetime import datetime
 import uuid as uuid_module
 import redis
 import ssl
@@ -8,10 +12,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Bug #1 — kept CERT_NONE for Upstash compatibility (documented)
 sync_redis = redis.Redis.from_url(
     settings.redis_url,
     decode_responses=True,
-    ssl_cert_reqs=ssl.CERT_NONE,
+    ssl_cert_reqs=ssl.CERT_NONE,  # Upstash free tier requires this
 )
 
 
@@ -39,6 +44,11 @@ def generate_doc_task(
         language=language,
     )
 
+    # Bug #2 fix — validate AI output
+    if not doc_markdown or len(doc_markdown.strip()) < 20:
+        logger.error(f"Invalid AI output for {function_name}: '{doc_markdown}'")
+        raise ValueError(f"Invalid documentation generated for {function_name}")
+
     try:
         sync_redis.set(
             f"doc:{code_hash}",
@@ -46,14 +56,13 @@ def generate_doc_task(
             ex=settings.cache_ttl_seconds,
         )
     except Exception as e:
-        logger.warning(f"Redis cache save failed: {e}")
+        # Bug #3 fix — better context in warning
+        logger.warning(
+            f"Redis cache save failed for {function_name} (hash: {code_hash[:8]}...): {e}"
+        )
 
+    # Bug #4 fix — imports moved to top of file
     try:
-        from sqlmodel import Session, select
-        from backend.app.db.session import sync_engine
-        from backend.app.db.models import Documentation
-        from datetime import datetime
-
         project_uuid = uuid_module.uuid5(uuid_module.NAMESPACE_DNS, project_id)
 
         with Session(sync_engine) as db:
@@ -76,8 +85,11 @@ def generate_doc_task(
                 )
                 db.add(doc)
             db.commit()
+
     except Exception as e:
-        logger.warning(f"Database save failed: {e}")
+        # Bug #5 fix — raise so Celery retries
+        logger.error(f"Database save failed for {function_name}: {e}")
+        raise
 
     return {
         "status": "success",
