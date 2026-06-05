@@ -8,7 +8,7 @@ from backend.app.queue.celery_app import celery_app
 from backend.app.queue.tasks import generate_doc_task
 from backend.app.db.session import get_db
 from backend.app.db.models import Documentation, Project
-from backend.app.main import cache_hits, cache_misses
+from backend.app.metrics import cache_hits, cache_misses
 from sqlmodel import select
 import hashlib
 import time
@@ -42,9 +42,6 @@ async def request_documentation(
     current_user: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
-    # Bug #1 fix — import moved to top of file
-
-    # Bug #2 + #3 fix — commit and error handling
     project_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, req.project_id)
     project_result = await db.execute(select(Project).where(Project.id == project_uuid))
     if not project_result.scalar_one_or_none():
@@ -104,7 +101,6 @@ async def request_documentation(
         code_hash=code_hash,
     )
 
-    # Bug #4 fix — store task ownership
     await cache_set(f"task_owner:{task.id}", current_user, ttl=3600)
 
     return DocumentationResponse(task_id=task.id, status="queued")
@@ -115,7 +111,6 @@ async def get_task_result(
     task_id: str,
     current_user: str = Depends(get_current_user),
 ):
-    # Bug #4 fix — verify task ownership
     owner = await cache_get(f"task_owner:{task_id}")
     if owner and owner != current_user:
         raise HTTPException(status_code=403, detail="Not your task")
@@ -142,7 +137,6 @@ async def get_project_documentation(
     current_user: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
-    # Bug #5 fix — verify project ownership
     project_result = await db.execute(
         select(Project).where(
             Project.id == uuid.UUID(project_id),
