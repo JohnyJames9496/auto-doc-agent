@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from celery.result import AsyncResult
@@ -8,6 +8,7 @@ from backend.app.queue.celery_app import celery_app
 from backend.app.queue.tasks import generate_doc_task
 from backend.app.db.session import get_db
 from backend.app.db.models import Documentation, Project
+from backend.app.main import cache_hits, cache_misses
 from sqlmodel import select
 import hashlib
 import time
@@ -15,7 +16,6 @@ import uuid
 import logging
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 
@@ -42,20 +42,26 @@ async def request_documentation(
     current_user: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
-    from backend.app.main import cache_hits, cache_misses
+    # Bug #1 fix — import moved to top of file
 
+    # Bug #2 + #3 fix — commit and error handling
     project_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, req.project_id)
     project_result = await db.execute(select(Project).where(Project.id == project_uuid))
     if not project_result.scalar_one_or_none():
-        db.add(
-            Project(
-                id=project_uuid,
-                name=req.project_id,
-                owner_id=uuid.UUID(current_user),
+        try:
+            db.add(
+                Project(
+                    id=project_uuid,
+                    name=req.project_id,
+                    owner_id=uuid.UUID(current_user),
+                )
             )
-        )
-        await db.flush()
-        logger.info(f"Project created: {project_uuid} owner: {current_user}")
+            await db.commit()
+            logger.info(f"Project created: {project_uuid} owner: {current_user}")
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Project creation failed: {e}")
+            raise HTTPException(status_code=500, detail="Failed to create project")
     else:
         logger.info(f"Project exists: {project_uuid}")
 
@@ -98,6 +104,9 @@ async def request_documentation(
         code_hash=code_hash,
     )
 
+    # Bug #4 fix — store task ownership
+    await cache_set(f"task_owner:{task.id}", current_user, ttl=3600)
+
     return DocumentationResponse(task_id=task.id, status="queued")
 
 
@@ -106,6 +115,11 @@ async def get_task_result(
     task_id: str,
     current_user: str = Depends(get_current_user),
 ):
+    # Bug #4 fix — verify task ownership
+    owner = await cache_get(f"task_owner:{task_id}")
+    if owner and owner != current_user:
+        raise HTTPException(status_code=403, detail="Not your task")
+
     result = AsyncResult(task_id, app=celery_app)
 
     if result.ready():
@@ -128,7 +142,19 @@ async def get_project_documentation(
     current_user: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
-    result = await db.execute(select(Documentation).where(Documentation.project_id == project_id))
+    # Bug #5 fix — verify project ownership
+    project_result = await db.execute(
+        select(Project).where(
+            Project.id == uuid.UUID(project_id),
+            Project.owner_id == uuid.UUID(current_user),
+        )
+    )
+    if not project_result.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Not your project")
+
+    result = await db.execute(
+        select(Documentation).where(Documentation.project_id == uuid.UUID(project_id))
+    )
     docs = result.scalars().all()
     return {
         "documentation": [
