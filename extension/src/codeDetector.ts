@@ -15,7 +15,7 @@ export class CodeChangeDetector {
     constructor(
         private client: AutoDocClient,
         private hoverProvider: AutoDocHoverProvider,
-    ) {}
+    ) { }
 
     start(context: vscode.ExtensionContext) {
         const disposable = vscode.workspace.onDidChangeTextDocument((event) => {
@@ -46,7 +46,8 @@ export class CodeChangeDetector {
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
         const projectId = workspaceFolder?.name ?? 'default';
 
-        for (const fn of functions) {
+        // Bug #2 fix — parallel processing
+        await Promise.all(functions.map(async (fn) => {
             const result = await this.client.requestDocumentation({
                 file_path: document.uri.fsPath,
                 function_name: fn.name,
@@ -55,14 +56,12 @@ export class CodeChangeDetector {
                 project_id: projectId,
             });
 
-            // If cached/complete, set immediately
             if (result.documentation) {
                 this.hoverProvider.setDocumentation(document.uri.fsPath, fn.name, result.documentation);
             } else if (result.taskId) {
-                // Otherwise poll for result
                 this.pollForResult(result.taskId, fn.name, document.uri.fsPath);
             }
-        }
+        }));
 
         this.lastVersionMap.set(document.uri.toString(), document.version);
     }
@@ -73,7 +72,8 @@ export class CodeChangeDetector {
 
         if (language === 'python') {
             for (let i = 0; i < lines.length; i++) {
-                const match = lines[i].match(/^(?:async\s+)?def\s+(\w+)\s*\(/);
+                // Bug #3 fix — removed ^ to catch class methods
+                const match = lines[i].match(/(?:async\s+)?def\s+(\w+)\s*\(/);
                 if (!match) continue;
 
                 const fnName = match[1];
@@ -87,7 +87,8 @@ export class CodeChangeDetector {
                 }
 
                 if (j > i + 1) {
-                    const fnCode = lines.slice(i, Math.min(j, i + 100)).join('\n');
+                    // Bug #4 fix — increased to 200 lines
+                    const fnCode = lines.slice(i, Math.min(j, i + 200)).join('\n');
                     results.push({ name: fnName, code: fnCode, line: i });
                 }
             }
@@ -107,7 +108,7 @@ export class CodeChangeDetector {
                 let started = false;
                 let j = i;
 
-                while (j < lines.length && j < i + 100) {
+                while (j < lines.length && j < i + 200) {
                     for (const ch of lines[j]) {
                         if (ch === '{') { braceCount++; started = true; }
                         if (ch === '}') braceCount--;
@@ -127,13 +128,25 @@ export class CodeChangeDetector {
     }
 
     private pollForResult(taskId: string, fnName: string, filePath: string, attempts = 0) {
-        if (attempts > 15) return;
+        // Bug #5 fix — warn on timeout
+        if (attempts > 15) {
+            vscode.window.showWarningMessage(
+                `Auto-Doc Agent: Documentation for "${fnName}" timed out. Try saving again.`
+            );
+            return;
+        }
 
         setTimeout(async () => {
             const result = await this.client.pollTaskResult(taskId);
             if (result?.status === 'complete' && result.documentation) {
                 this.hoverProvider.setDocumentation(filePath, fnName, result.documentation);
-            } else if (result?.status === 'pending') {
+            } else if (result?.status === 'failed') {
+                // Bug #6 fix — handle failed status
+                vscode.window.showErrorMessage(
+                    `Auto-Doc Agent: Documentation failed for "${fnName}".`
+                );
+            } else {
+                // pending or null → keep polling
                 this.pollForResult(taskId, fnName, filePath, attempts + 1);
             }
         }, 2000);
