@@ -2,28 +2,44 @@ name: Push Metrics to Grafana Cloud
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # every 5 minutes
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
   push-metrics:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Prometheus tools
+      - name: Install Grafana Alloy
         run: |
-          wget https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz
-          tar xvf prometheus-2.45.0.linux-amd64.tar.gz
-          sudo mv prometheus-2.45.0.linux-amd64/promtool /usr/local/bin/
+          wget -q -O alloy.deb https://github.com/grafana/alloy/releases/download/v1.1.0/alloy-1.1.0-1.amd64.deb
+          sudo dpkg -i alloy.deb
 
-      - name: Scrape and push metrics
+      - name: Create Alloy config
         env:
           GRAFANA_URL: ${{ secrets.GRAFANA_PROMETHEUS_URL }}
           GRAFANA_USER: ${{ secrets.GRAFANA_PROMETHEUS_USER }}
           GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
-          RENDER_URL: https://auto-doc-agent.onrender.com
         run: |
-          curl -s "$RENDER_URL/metrics" -o metrics.txt
-          curl -X POST "$GRAFANA_URL" \
-            -u "$GRAFANA_USER:$GRAFANA_TOKEN" \
-            --data-binary @metrics.txt \
-            -H "Content-Type: text/plain"
+          cat > config.alloy << ALLOY
+          prometheus.scrape "autodoc" {
+            targets = [{"__address__" = "auto-doc-agent.onrender.com", "__scheme__" = "https", "__metrics_path__" = "/metrics"}]
+            forward_to = [prometheus.remote_write.grafana.receiver]
+            scrape_interval = "60s"
+          }
+
+          prometheus.remote_write "grafana" {
+            endpoint {
+              url = "$GRAFANA_URL"
+              basic_auth {
+                username = "$GRAFANA_USER"
+                password = "$GRAFANA_TOKEN"
+              }
+            }
+          }
+          ALLOY
+
+      - name: Run Alloy for 90 seconds
+        run: |
+          alloy run config.alloy &
+          sleep 90
+          kill %1 || true
