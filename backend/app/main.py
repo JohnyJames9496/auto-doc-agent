@@ -1,11 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from contextlib import asynccontextmanager
-from backend.app.db.session import create_db_and_tables
+from backend.app.db.session import create_db_and_tables, get_db
 from backend.app.auth.router import router as auth_router
 from backend.app.api.docs import router as docs_router
+from backend.app.cache.redis_client import cache_set, cache_get
+from sqlalchemy import text
 import os
 
 
@@ -49,10 +51,11 @@ async def serve_dashboard():
 
 
 @app.get("/health", tags=["health"])
-async def health_check():
-    from backend.app.cache.redis_client import cache_set, cache_get
-
+async def health_check(db=Depends(get_db)):
     redis_status = "ok"
+    db_status = "ok"
+
+    # Test Redis
     try:
         await cache_set("health_check", "ok", ttl=10)
         value = await cache_get("health_check")
@@ -60,9 +63,19 @@ async def health_check():
             redis_status = "error"
     except Exception:
         redis_status = "error"
+
+    # Bug #4 fix — test PostgreSQL
+    try:
+        await db.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "error"
+
+    overall = "ok" if redis_status == "ok" and db_status == "ok" else "degraded"
+
     return {
-        "status": "ok",
+        "status": overall,
         "app": "Auto-Doc Agent",
         "version": "1.0.0",
         "redis": redis_status,
+        "database": db_status,
     }
