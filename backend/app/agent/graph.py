@@ -5,6 +5,7 @@ from typing import TypedDict, Optional
 from backend.app.agent.prompts import SYSTEM_PROMPT, DOC_GENERATION_PROMPT
 from backend.app.config import settings
 import json
+import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -49,14 +50,17 @@ def parse_response(state: DocState) -> DocState:
         return state
     try:
         raw = state["raw_response"].strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
+
+        # Bug #2 fix — robust markdown stripping with regex
+        code_block_pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
+        match = re.search(code_block_pattern, raw, re.IGNORECASE)
+        if match:
+            raw = match.group(1)
+
         parsed = json.loads(raw.strip())
         return {**state, "parsed_doc": parsed}
     except json.JSONDecodeError as e:
-        logger.error(f"JSON parse failed: {e}")
+        logger.error(f"JSON parse failed: {e}\nRaw response: {raw[:200]}")
         return {**state, "error": str(e), "retry_count": state["retry_count"] + 1}
 
 
@@ -74,18 +78,24 @@ def format_markdown(state: DocState) -> DocState:
     ]
     if doc.get("parameters"):
         lines += ["", "**Parameters**"]
-        for p in doc["parameters"]:
-            lines.append(f"- `{p['name']}` *({p['type']})*: {p['description']}")
+        # Bug #3 fix — use .get() with defaults
+        for p in doc.get("parameters", []):
+            name = p.get("name", "unknown")
+            type_ = p.get("type", "any")
+            desc = p.get("description", "No description")
+            lines.append(f"- `{name}` *({type_})*: {desc}")
     if doc.get("returns") and doc["returns"].get("description"):
         r = doc["returns"]
         lines += ["", f"**Returns** `{r.get('type', 'unknown')}`: {r['description']}"]
     if doc.get("raises"):
         lines += ["", "**Raises**"]
-        for exc in doc["raises"]:
-            lines.append(f"- `{exc['exception']}`: {exc['condition']}")
+        for exc in doc.get("raises", []):
+            exc_name = exc.get("exception", "Exception")
+            condition = exc.get("condition", "")
+            lines.append(f"- `{exc_name}`: {condition}")
     if doc.get("warnings"):
         lines += ["", "**Warnings**"]
-        for w in doc["warnings"]:
+        for w in doc.get("warnings", []):
             lines.append(f"- {w}")
     if doc.get("complexity"):
         lines += ["", f"*Complexity: {doc['complexity']}*"]
@@ -137,6 +147,14 @@ def generate_documentation(code: str, function_name: str, language: str) -> str:
         retry_count=0,
     )
     result = doc_agent.invoke(initial_state)
+
+    # Bug #4 fix — informative fallback message
     if result.get("error") or not result.get("formatted_markdown"):
-        return f"### `{function_name}`\n\n*Documentation generation failed.*"
+        error_msg = result.get("error", "Unknown error")
+        logger.error(f"Documentation generation failed for {function_name}: {error_msg}")
+        return (
+            f"### `{function_name}`\n\n"
+            f"*Documentation generation failed. "
+            f"Save the file again to retry.*"
+        )
     return result["formatted_markdown"]

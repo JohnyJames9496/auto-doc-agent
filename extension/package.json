@@ -2,7 +2,7 @@
   "name": "auto-doc-agent",
   "displayName": "Auto-Doc Agent",
   "description": "AI-powered automatic documentation generator — generates hover tooltips as you write code",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "publisher": "JohnyJames",
   "icon": "images/iconextension.png",
   "repository": {

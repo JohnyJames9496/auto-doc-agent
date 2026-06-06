@@ -3,6 +3,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from backend.app.db.session import get_db
 from backend.app.db.models import APIKey
+from backend.app.metrics import api_key_auth_total
 from sqlmodel import select
 from datetime import datetime
 
@@ -24,11 +25,12 @@ async def get_current_user(
 
     if not key_record:
         logger.warning(f"Invalid API key attempt: {api_key[:8]}...")
+        api_key_auth_total.labels(status="failure").inc()
         raise HTTPException(status_code=401, detail="Invalid API key")
 
-    # Bug #2 fix — update last_used
     key_record.last_used = datetime.utcnow()
     db.add(key_record)
 
+    api_key_auth_total.labels(status="success").inc()
     logger.info(f"Authenticated user: {key_record.user_id}")
     return str(key_record.user_id)

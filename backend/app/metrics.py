@@ -17,3 +17,13 @@ active_tasks = Gauge(
     "autodoc_active_celery_tasks",
     "Number of currently active Celery tasks",
 )
+doc_generation_total = Counter(
+    "autodoc_doc_generation_total",
+    "Total documentation generation attempts",
+    ["language", "status"],  # labels
+)
+api_key_auth_total = Counter(
+    "autodoc_api_key_auth_total",
+    "Total API key authentication attempts",
+    ["status"],  # success or failure
+)
