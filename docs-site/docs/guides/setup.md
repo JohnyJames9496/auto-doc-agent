@@ -16,7 +16,7 @@ Press `Ctrl+Shift+P` → Open User Settings JSON and add:
 ```json
 {
   "autoDocAgent.apiUrl": "https://auto-doc-agent.onrender.com",
-  "autoDocAgent.apiKey": "your-token-here"
+  "autoDocAgent.apiKey": "autodoc_your_key_here"
 }
 ```
 
