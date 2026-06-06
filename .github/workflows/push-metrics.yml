@@ -8,6 +8,11 @@ on:
 jobs:
   push-metrics:
     runs-on: ubuntu-latest
+    env:
+      GRAFANA_URL: ${{ secrets.GRAFANA_PROMETHEUS_URL }}
+      GRAFANA_USER: ${{ secrets.GRAFANA_PROMETHEUS_USER }}
+      GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+
     steps:
       - name: Install Grafana Alloy
         run: |
@@ -16,7 +21,7 @@ jobs:
 
       - name: Create Alloy config
         run: |
-          cat > config.alloy << 'ALLOY'
+          cat > config.alloy << ALLOY
           prometheus.scrape "autodoc" {
             targets = [{"__address__" = "auto-doc-agent.onrender.com", "__scheme__" = "https", "__metrics_path__" = "/metrics"}]
             forward_to = [prometheus.remote_write.grafana.receiver]
@@ -25,10 +30,10 @@ jobs:
 
           prometheus.remote_write "grafana" {
             endpoint {
-              url = "${{ secrets.GRAFANA_PROMETHEUS_URL }}"
+              url = "${GRAFANA_URL}"
               basic_auth {
-                username = "${{ secrets.GRAFANA_PROMETHEUS_USER }}"
-                password = "${{ secrets.GRAFANA_TOKEN }}"
+                username = "${GRAFANA_USER}"
+                password = "${GRAFANA_TOKEN}"
               }
             }
           }
