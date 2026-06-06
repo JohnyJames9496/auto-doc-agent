@@ -14,41 +14,17 @@ jobs:
       GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
 
     steps:
-      - name: Test credentials
+      - name: Debug secrets
         run: |
-          echo "Testing Grafana credentials..."
+          echo "URL length: ${#GRAFANA_URL}"
+          echo "USER length: ${#GRAFANA_USER}"
+          echo "TOKEN length: ${#GRAFANA_TOKEN}"
+          echo "USER value: ${GRAFANA_USER}"
+
+      - name: Test curl directly
+        run: |
           curl -v -u "${GRAFANA_USER}:${GRAFANA_TOKEN}" \
             "${GRAFANA_URL}" \
-            --data-binary "" \
-            -H "Content-Type: application/x-protobuf" 2>&1 | head -50
-
-      - name: Install Grafana Alloy
-        run: |
-          wget -q -O alloy.deb https://github.com/grafana/alloy/releases/download/v1.1.0/alloy-1.1.0-1.amd64.deb
-          sudo dpkg -i alloy.deb
-
-      - name: Create Alloy config
-        run: |
-          cat > config.alloy << ALLOY
-          prometheus.scrape "autodoc" {
-            targets = [{"__address__" = "auto-doc-agent.onrender.com", "__scheme__" = "https", "__metrics_path__" = "/metrics"}]
-            forward_to = [prometheus.remote_write.grafana.receiver]
-            scrape_interval = "60s"
-          }
-
-          prometheus.remote_write "grafana" {
-            endpoint {
-              url = "${GRAFANA_URL}"
-              basic_auth {
-                username = "${GRAFANA_USER}"
-                password = "${GRAFANA_TOKEN}"
-              }
-            }
-          }
-          ALLOY
-
-      - name: Run Alloy for 90 seconds
-        run: |
-          alloy run config.alloy &
-          sleep 90
-          kill %1 || true
+            -X POST \
+            -H "Content-Type: application/x-protobuf" \
+            --data "" 2>&1 | grep -E "HTTP|error|auth"
