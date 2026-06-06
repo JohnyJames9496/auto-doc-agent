@@ -5,6 +5,7 @@ from backend.app.config import settings
 
 async_database_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
 
+# Bug #1 fix — add pool_pre_ping to async engine
 async_engine = create_async_engine(
     async_database_url,
     echo=settings.debug,
@@ -13,18 +14,23 @@ async_engine = create_async_engine(
     max_overflow=10,
     pool_timeout=30,
     pool_recycle=1800,
+    pool_pre_ping=True,
     connect_args={
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
     },
 )
 
+# Bug #4 fix — add pool config to sync engine
 sync_engine = create_engine(
     settings.database_url,
     echo=settings.debug,
     pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
+    pool_recycle=1800,
+    pool_timeout=30,
 )
-
 
 AsyncSessionLocal = sessionmaker(
     bind=async_engine,
@@ -39,7 +45,6 @@ SyncSessionLocal = sessionmaker(
 
 
 async def get_db():
-
     async with AsyncSessionLocal() as session:
         try:
             yield session
