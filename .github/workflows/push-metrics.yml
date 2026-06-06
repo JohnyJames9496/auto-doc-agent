@@ -14,6 +14,14 @@ jobs:
       GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
 
     steps:
+      - name: Test credentials
+        run: |
+          echo "Testing Grafana credentials..."
+          curl -v -u "${GRAFANA_USER}:${GRAFANA_TOKEN}" \
+            "${GRAFANA_URL}" \
+            --data-binary "" \
+            -H "Content-Type: application/x-protobuf" 2>&1 | head -50
+
       - name: Install Grafana Alloy
         run: |
           wget -q -O alloy.deb https://github.com/grafana/alloy/releases/download/v1.1.0/alloy-1.1.0-1.amd64.deb
